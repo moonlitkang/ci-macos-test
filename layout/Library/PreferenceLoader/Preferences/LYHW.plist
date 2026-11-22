@@ -1,0 +1,8 @@
+{
+    entry = {
+        bundle = LYHWPrefs;
+        cell = PSLinkCell;
+        detail = LYHWRootListController;
+        label = "LYHW";
+    };
+}

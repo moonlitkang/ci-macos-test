@@ -1,0 +1,42 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Theos
+        run: |
+          brew install ldid xz make || true
+          export THEOS=$HOME/theos
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+          git clone --recursive --depth 1 https://github.com/theos/theos.git "$THEOS"
+          mkdir -p "$THEOS/sdks"
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          SDK_VER=$(xcrun --sdk iphoneos --show-sdk-version)
+          ln -sfn "$SDK_PATH" "$THEOS/sdks/iPhoneOS${SDK_VER}.sdk"
+          echo "Linked SDK: iPhoneOS${SDK_VER}.sdk -> $SDK_PATH"
+          ls -l "$THEOS/sdks"
+
+      - name: Build package (arm64 / rootless)
+        run: |
+          make clean || true
+          make package FINALPACKAGE=1 ARCHS=arm64
+          test -n "$(find packages -maxdepth 1 -name '*.deb' -print -quit)"
+
+      - name: Show output
+        run: ls -lh packages/
+
+      - name: Upload deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: LYHW-deb
+          path: packages/*.deb
+          if-no-files-found: error
